@@ -1,3 +1,4 @@
+import json
 from myClasses import *
 from enumerates import *
 from twisted.internet import reactor
@@ -14,13 +15,14 @@ def availableOperator(operators):
 
 def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 	print(command[0])
+	my_json = []
 	missed = 0
 	#list of commands to be called
 	#for every command and ID in the list, checks everything
 	match command[0]:
 		case "call":
-			server.transport.write(("call " + str(command[1]) +" received\n").encode())
-			#print("call",command[1],"received")
+			#server.transport.write(json.dumps({"response": ("call " + str(command[1]) +" received\n")}).encode())
+			my_json.append(json.dumps({"response": ("call " + str(command[1]) +" received")}))
 			#creates a call with an id
 			calls.append(Call(command[1]))
 
@@ -29,8 +31,8 @@ def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 			for operator in operators:
 				if operator.getId() == command[1]:
 					break
-			server.transport.write(("call "+str(operator.getCall().getId())+" answered by operator "+str(operator.getId())+"\n").encode())
-			#print("call",operator.getCall().getId(),"answered by operator",operator.getId())
+			#server.transport.write(json.dumps({"response": ("call "+str(operator.getCall().getId())+" answered by operator "+str(operator.getId())+"\n")}).encode())
+			my_json.append(json.dumps({"response": ("call "+str(operator.getCall().getId())+" answered by operator "+str(operator.getId()))}))
 			#set state to busy
 			operator.setState(switchState(2))
 			operator.getCall().setState(switchCallState(2))
@@ -39,8 +41,8 @@ def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 			for operator in operators:
 				if operator.getId() == command[1]:
 					break
-			server.transport.write(("call "+str(operator.getCall().getId())+" rejected by operator "+str(operator.getId())+"\n").encode())
-			#print("call",operator.getCall().getId(),"rejected by operator",operator.getId())
+			#server.transport.write(json.dumps({"response": ("call "+str(operator.getCall().getId())+" rejected by operator "+str(operator.getId())+"\n")}).encode())
+			my_json.append(json.dumps({"response": ("call "+str(operator.getCall().getId())+" rejected by operator "+str(operator.getId()))}))
 			#operator available
 			operator.setState(switchState(0))
 			#remove call from the list
@@ -58,21 +60,21 @@ def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 					break
 			for call in calls:
 				if call.getId() == command[1]:
-					server.transport.write(("call "+str(call.getId())+" missed\n").encode())
-					#print("call", call.getId(), "missed")
+					#server.transport.write(json.dumps({"response": ("call "+str(call.getId())+" missed\n")}).encode())
+					my_json.append(json.dumps({"response": ("call "+str(call.getId())+" missed")}))
 					calls.remove(call)
 					missed = 1
 			for call in ongoingCalls:
 				if call.getId() == command[1] and call.getState() == switchState(1):
-					server.transport.write(("call "+str(call.getId())+" missed\n").encode())
-					#print("call", call.getId(), "missed")
+					#server.transport.write(json.dumps({"response": ("call "+str(call.getId())+" missed\n")}).encode())
+					my_json.append(json.dumps({"response": ("call "+str(call.getId())+" missed")}))
 					ongoingCalls.remove(call)
 					operator.setState(switchState(0))
 					operator.setCall(Call(None))
 					missed = 1
 			if not missed:
-				server.transport.write(("call "+str(operator.getCall().getId())+" finished and operator "+str(operator.getId())+" available\n").encode())
-				#print("call",operator.getCall().getId(),"finished and operator",operator.getId(),"available")
+				#server.transport.write(json.dumps({"response": ("call "+str(operator.getCall().getId())+" finished and operator "+str(operator.getId())+" available\n")}).encode())
+				my_json.append(json.dumps({"response": ("call "+str(operator.getCall().getId())+" finished and operator "+str(operator.getId())+" available")}))
 				operator.setState(switchState(0))
 				ongoingCalls.remove(operator.getCall())
 				operator.setCall(Call(None))
@@ -81,8 +83,8 @@ def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 	#If there is a free operator
 	#Call him, change the state and set the Operator
 	if op and calls:
-		server.transport.write(("call " + str(calls[0].getId())+" ringing for operator "+ str(op.getId())+"\n").encode())
-		#print("call",calls[0].getId(),"ringing for operator",op.getId())
+		#server.transport.write(json.dumps({"response": ("call " + str(calls[0].getId())+" ringing for operator "+ str(op.getId())+"\n")}).encode())
+		my_json.append(json.dumps({"response": ("call " + str(calls[0].getId())+" ringing for operator "+ str(op.getId()))}))
 		#give call to operator
 		op.setCall(calls[0])
 		#set state to ringing
@@ -94,6 +96,7 @@ def queueLogic(command, operator, calls, ongoingCalls, operators, server):
 		#remove from the normal calls
 		calls.remove(calls[0])
 	if not op and calls:
-		server.transport.write(("call "+str(calls[-1].getId())+" waiting in queue\n").encode())
-		#print("call",calls[-1].getId(),"waiting in queue")
+		#server.transport.write(json.dumps({"response": ("call "+str(calls[-1].getId())+" waiting in queue\n")}).encode())
+		my_json.append(json.dumps({"response": ("call "+str(calls[-1].getId())+" waiting in queue")}))
+	server.transport.write(json.dumps(my_json).encode())
 	return operator, calls, ongoingCalls

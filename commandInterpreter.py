@@ -7,7 +7,9 @@ from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 class Client(Protocol):
 	def dataReceived(self, data):
 		data = data.decode('utf-8')
-		print(data)
+		for element in json.loads(data):
+			print(json.loads(element)["response"])
+		print()
 		command = (input().split())
 		data = json.dumps({"command": command[0], "id": command[1]})
 		self.transport.write(data.encode())
@@ -19,14 +21,3 @@ class ClientFactory(ClF):
 point = TCP4ClientEndpoint(reactor, "localhost", 5678)
 point.connect(ClientFactory())
 reactor.run()
-
-# d = connectProtocol(point, Server())
-# d.addCallback(gotProtocol)
-#
-# command = ["default"]
-# operator = "default"
-#
-
-# print(data)
-#
-# reactor.run()

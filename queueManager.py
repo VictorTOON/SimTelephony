@@ -16,15 +16,12 @@ operators = [operatorA, operatorB]
 
 def manage(server, data, operator, calls, ongoingCalls):
 	command = [data["command"], data["id"]]
-	print(command, operator, calls, ongoingCalls, operators, server)
 	operator, calls, ongoingCalls = queueLogic(command, operator, calls, ongoingCalls, operators, server)
-	print(command, operator, calls, ongoingCalls, operators, server)
-	return "putcha vida"
 
 class Server(Protocol):
 	def connectionMade(self):
-		print("conectou")
-		self.transport.write("eae do server".encode('utf-8'))
+		print("Connected to the client")
+		self.transport.write(json.dumps([json.dumps({"response": "Connected to the server"})]).encode('utf-8'))
 
 	def dataReceived(self, data):
 		manage(self, json.loads(data.decode()), operator, calls, ongoingCalls)
